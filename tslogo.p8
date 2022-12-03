@@ -116,6 +116,9 @@ function _update60()
     logo_anim(1)
     -- logo_anim(1)
     -- logo_anim(2)
+    if time() > 4.5 then
+        load("metal.p8")
+    end
 end
 
 

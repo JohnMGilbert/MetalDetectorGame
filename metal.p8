@@ -1,32 +1,177 @@
 pico-8 cartridge // http://www.pico-8.com
 version 36
 __lua__
---init
+--init 😐
+
+-- fix gen npc dialogue
+-- Activate lounger by stepping on him.
+-- Change trash to coins
+-- option to leave items, need to manage inventory. 
+-- start menu
+-- instruments
+	-- as soon as you agree to hand it over maybe the sprite switches and then when dialogue is done they start playing
+-- do trades with owner
+
+rx = 0
+ry = 384
+
+bart={}
+bart.spr=34
+bart.words={
+	"bye",
+	"welcome, need any supplies? i'm only accepting licorice at the moment but i suppose anything is can be used as currency."
+}
+bart.txt=bart.words[2]
+bart.x=rx+18
+bart.y=ry+20
+bart.vo=2
 
 
-debugvar = 0
+crab={}
+crab.txt="...chit..chit chit...chit..."
+
+lounger={}
+lounger.spr=32
+lounger.x=34
+lounger.y=77
+lounger.words = {
+	"goodbye",
+	"c'mon man... don't step on me while i'm enjoying a nice day in the sun. : sorry;my bad;just be careful",
+	"second thing to say"
+}
+lounger.txt=lounger.words[2]
+lounger.vo=7
+lounger.state = 2
+
+--psp guy
+ps={}
+ps.x = 128*3+60
+ps.vo=4
+ps.y = -16
+ps.words = {
+	".......:",
+	"...can i help you?:"
+
+}
+ps.txt=ps.words[1]
+ps.state=1
+
+
+--guitar
+gu={}
+gu.spr=11
+gu.body=14
+gu.hands=27
+gu.x=70
+gu.y=396
+-- gu.sc=5
+-- gu.an=true
+gu.timer=-1
+gu.sw=false
+gu.words = {
+	"bye",
+	"me and the guys lost our instruments... if you see my guitar lying around do let me know. : yikes;too bad;it'll turn up, i think.",
+	"",
+	"couldn't have done it without you friend. :no worries;glad to help",
+	"what's this? my guitar in one piece! i know you found it but would you mind giving it back? : ok;sure thing;now watch this!"
+}
+gu.txt = gu.words[2]
+gu.vo=4
+gu.state=2
+gu.done=false
+
+--bass
+ba={}
+ba.spr=16
+ba.hands=22
+ba.arms=23
+ba.x=103
+ba.y=425
+-- ba.sc=5
+-- ba.an=true
+ba.timer=-1
+ba.sw=false
+-- ba.w = 8
+-- ba.h=16
+ba.timer=-1
+ba.words = {
+	"bye",
+	"um....oh. h-hello.... :hey;you ok?;i lost something very special to me. if you see a big bass somewhere, i'd be so happy if you brought it back to me. but i know this isn't your responsibility... it's my fault.",
+	"",
+	"oh. hi again. i wish i could play you a song but... nevermind. :here;this help?;my... oh sir you don't know what this means to me! this goes out to you!",
+	"one of our best performances right here. : sounds good;hmm;see ya"
+}
+ba.txt = ba.words[2]
+ba.vo = 5
+ba.done=false
+ba.state = 2
+
+--drummer
+dr={}
+dr.spr=6
+dr.x=95
+dr.y=401
+-- dr.sc=5
+-- dr.an=false
+dr.timer=-1
+dr.sw=false
+dr.hb={}
+dr.words = {
+	"bye",
+	"lost my kick, my snare, my cymbals. that's everything. : oh no;sheesh;if you see any drums out there in the sand just know those are mine, ok?",
+	"",
+	"i guess i should thank you. :no prob;;you did pay the door fee, right?",
+	"what now? oh... OH those are mine! i thought it's never see my cymbol ever again!:here;take em;yes!! i can get back in action!"
+}
+dr.txt = dr.words[2]
+dr.vo=6
+dr.done=false
+dr.state = 2
+
+gen_npcs={}
+gen_npcs.words={
+	"i might just skip town. :",
+	"i'm just sitting here. : ",
+	"i want to visit hawaii. :",
+	"i wish i knew magic.:",
+	"i come here and never buy anything...:",
+	"the soda here is the best soda in town.:",
+	"this music is awesome!:",
+	"best band ever!:"
+
+
+}
+-- gen_npcs.txt={
+-- 	"i might just skip town.",
+-- 	"i'm just sitting here.",
+-- 	"i want to visit hawaii."
+-- }
+gen_iter = 1
+gen_npcs.txt=gen_npcs.words[gen_iter]
+gen_npcs.state = 2
+gen_npcs.col = 0
+response = ""
+
+
+
 dgenx=0
 dgeny=0
 
 in_rest = true
 outside = true
-rx = 0
-ry = 384
+
+stop_talking = false
 
 btn5={}
 btn5.timer=-1
 btn5.sw=true
 
-this=false
-debug1 = false
+-- this=false
 pdebug = ""
 debug_q1={0,0}
 stopadding=false
 debug = false
 onObject = false
--- draw_drummer = true
--- draw_bass = false
--- draw_guitar = false
 
 tranbool=false
 transition={}
@@ -66,12 +211,6 @@ m_items={}
 m_items.type = nil
 m_items.coords = {nil,nil}
 m_items.spr = nil
--- m_items.gu1 = {}
--- m_items.gu1.coords = {43,2}
--- m_items.gu1.spr = 36
--- m_items.gu2 = {}
--- m_items.gu2.coords={nil,nil}
--- m_items.gu2.spr = 52
 
 testbarmid = 0
 
@@ -103,7 +242,7 @@ arrow.y=0
 arrow.spd=k_arrow_speed
 -- settings
 -- player
-spd=.7 -- Speed
+spd=.7 -- Speed (.7)
 digging = false
 -- misc
 tran_spd=0.1 -- how fast screen moves
@@ -122,20 +261,15 @@ txt.sw=false
 txt.line1=""
 txt.line2=""
 txt.line3=""
-txt.option1="sorry"
-txt.option2="my bad"
+txt.option1=nil
+txt.option2=nil
 txt.spd=.05
 txt.opt=1
 
 talking_to=nil
 
-bart={}
-bart.spr=34
-bart.txt="welcome, need any supplies? i'm only accepting licorice at the moment but i suppose anything is can be used as currency."
-bart.x=rx+18
-bart.y=ry+20
-bart.vo=2
-
+all_done = false
+filled_gen = false
 
 _d=0
 
@@ -148,13 +282,21 @@ cx,cy=0,0
 ix=cx+128
 show_inv=false
 
+water={}
+water.timer=-1
+water.sw=false
+wxoff=0
+wyoff=0
+wswitch=-1
+
 npcs = {}
 
-gen_npcs={}
-gen_npcs.dia={}
-gen_npcs.dia[1] = "i might just skip town."
-gen_npcs.dia[2] = "i'm just sitting here."
-gen_npcs.dia[3] = "i want to visit hawaii."
+ -- TODO
+-- gen_npcs.txt={
+-- 	"i might just skip town.",
+-- 	"i'm just sitting here.",
+-- 	"i want to visit hawaii."
+-- }
 
 
 _time=time()
@@ -173,6 +315,7 @@ dflag=true
 --detgt = time()
 function _init()
 	main_pal()
+	init_hitboxes()
    scene="menu"
    x=64
    y=64
@@ -180,19 +323,23 @@ function _init()
    add(npcs, ba)
    add(npcs, dr)
    add(npcs,bart)
+   add(npcs,ps)
 --    add(npcs, bart)
 	add(npcs, lounger)
-	_add_npc_gen(20,20)
-	-- _add_npc_gen(20,20)
+	_add_npc_gen(40,92)
+	-- for gn in all(gen_npcs) do
+	-- 	add(npcs,gn)
+	-- end
+
 	-- guitar parts
 	add(m_items, {
 		type = 36,
-		coords = {6,6},
+		coords = {2,1},
 		spr = 36
 	})
 	add(m_items, {
 		type = 52,
-		coords = {74,20},
+		coords = {54,28},
 		spr = 52
 	})
 
@@ -200,31 +347,33 @@ function _init()
 	-- cymbols
 	add(m_items, {
 		type = 39,
-		coords = {38,2},
+		coords = {3,43},
 		spr = 39
 	})
 	-- drum
 	add(m_items, {
 		type = 55,
-		coords = {4,40},
+		coords = {58,11},
 		spr = 55
 	})
 	-- dirty drum
 	add(m_items, {
 		type = 56,
-		coords = {18,28},
+		coords = {74,37},
 		spr = 56
 	})
-	-- add(m_items, {
-	-- 	type = 36,
-	-- 	coords = {6,6},
-	-- 	spr = 36
-	-- })
-	-- add(m_items, {
-	-- 	type = 36,
-	-- 	coords = {6,6},
-	-- 	spr = 36
-	-- })
+
+	-- bass parts
+	add(m_items, { -- body
+		type = 53,
+		coords = {7,6},
+		spr = 53
+	})
+	add(m_items, { -- neck
+		type = 38,
+		coords = {15,2},
+		spr = 38
+	})
 
 --    music(0)
 end
@@ -241,23 +390,58 @@ end
 -->8
 --update
 function _update60()
-	if btnp(3,1) then debug = not debug end
-	
-	if count(mounds) > 30 then
+	if not start_menu then
+		if timer(water,.7) then
+			wyoff+=1*wswitch
+			wxoff+=2*wswitch
+			wswitch = wswitch*-1
+		end
 		
-			deli(mounds,1)
+		-- if btnp(3,1) then debug = not debug end
 		
-	end
-	update_pl()
-	update_map()
-	if do_waves then 
-		-- sfx(0) 
-		do_waves=false
+		if count(mounds) > 30 then
+			
+				deli(mounds,1)
+			
+		end
+		update_pl()
+		update_map()
+		if do_waves then 
+			-- sfx(0) 
+			do_waves=false
+		end
 	end
 
-	if on_tile() == 5 then
-		debug1 = true
-	end
+
+end
+
+function init_hitboxes()
+	spr_boxes={}
+	spr_boxes.x1=0
+	spr_boxes.y1=0
+	spr_boxes.x2=0
+	spr_boxes.y2=0
+
+	--rest tables
+	add(spr_boxes,{x1=30,y1=464,x2=60,y2=473})
+	add(spr_boxes,{x1=70,y1=464,x2=101,y2=473})
+	add(spr_boxes,{x1=30,y1=484,x2=60,y2=493})
+	add(spr_boxes,{x1=70,y1=484,x2=101,y2=493})
+	add(spr_boxes,{x1=8,y1=392,x2=39,y2=418})
+
+	--porta potty
+	px = 128*3
+	add(spr_boxes,{x1=50+px,y1=-40,x2=59+px,y2=0})
+	add(spr_boxes,{x1=78+px,y1=-40,x2=90+px,y2=0})
+
+
+	-- npcs
+	add(spr_boxes,{x1=gu.x,y1=gu.y+8,x2=gu.x+8,y2=gu.y+16}) -- gu
+	add(spr_boxes,{x1=ba.x,y1=ba.y,x2=ba.x+8,y2=ba.y+8}) -- ba
+	add(spr_boxes,{x1=dr.x,y1=dr.y,x2=dr.x+8,y2=dr.y+8}) -- dr
+	add(spr_boxes, {x1=128*3+60,y1=-24,x2=128*3+68,y2=-16}) --psp guy
+
+
 end
 
 
@@ -269,64 +453,173 @@ end
 
 -->8
 --draw
+
+start_menu = true
+men_sel = true
+start_col = 1
+cont_col = 6
+show_controls = false
 function _draw()
 	cls(0)
-	update_camera()
-	if tranbool == true then
-		fade_to_black()
-		if timer(transition,1,transition.sw) then tranbool = false end
-		
-	else 
-		map(0, 0, 0, 0, 128, 128)
-
-		_draw_rest()
-		draw_mounds()
-		draw_flipped()
-		draw_stuff1()
-		-- spr(pl.head,pl.x,pl.y-8,1,1,pl.mrr)
-		drawplayer()
-		main_pal()
-	-- draw_stuff2()
-		if digging then dig_hud() end
-		hud()
-
-		if btnp(4,1) then show_inv = not show_inv end
-		draw_invent(show_inv) 
-		
-		
-		for n in all(gen_npcs) do
-			n:draw()
-
-		end
-	-- Temp stuff
-		
-		
-		if debug then
-			rect(pl.x-4,pl.y-8,pl.x+12,pl.y+8,9)
-			print("debug on",52,4,8)
-			print("tile x,y: "..(flr(pl.x)).." "..(flr(pl.y)),cx+10,cy+10,9)
-			print("Gen: "..dgenx.." "..dgeny,1)
-			if digging then 
-				print("dig coords x:"..debug_q1[1].." y:"..debug_q1[2],cx+40,cy+120)
-			end
+	if start_menu then
+		map(22,22,-256,-256,16,16,0x2)
+		sx = -256+45
+		sy = -256+40
+		if not show_controls then
 			
-			pset(pl.x,pl.y,8)
-			if not stopadding then
-				pl.inv[1]+=1
-				pl.inv[2]+=1
-				pl.inv[3]+=1
-				pl.inv[4]+=1
-				pl.inv[5]+=1
-				pl.inv[6]+=1
+			spr(74,sx,sy,2,1)
+			spr(74,sx+16,sy,2,1,true,false)
+			spr(74,sx,sy+6,2,1,false,true)
+			spr(74,sx+16,sy+6,2,1,true,true)
+			print("start",sx+6,sy+4,start_col)
+
+			--controls
+			conx = sx-4
+			cony = sx+20
+			spr(74,conx,cony,2,1)
+			spr(75,conx+16,cony)
+			spr(75,conx+16,cony+6,1,1,false,true)
+			spr(74,conx+24,cony,2,1,true,false)
+			spr(74,conx,cony+6,2,1,false,true)
+			spr(74,conx+24,cony+6,2,1,true,true)
+			print("controls",conx+5,cony+4,cont_col)
+
+			-- menu controls
+			if btnp(2) then
+				start_col = 1
+				cont_col = 6
+				men_sel = true
+			end
+			if btnp(3) then
+				start_col = 6
+				cont_col = 1
+				men_sel = false
+			end
+			if btnp(4) and men_sel and not show_controls then
+				start_menu = false
+			end
+	
+			if btnp(4) and not men_sel then -- show controls
 				
-				stopadding=true
+				show_controls = true
 			end
-			print("curr slot: "..pl.curr_slot,cx,cy)
-			print(debugvar)
-			if this then print("do dialogue done",cx,cy+10) end
-			
 		end
+
+		if show_controls then
+			rectfill(sx-15,sy,sx+50,sy+34,7)
+			spr(74,sx-20,sy-6)
+			spr(74,sx+50,sy-6,1,1,true,false)
+			spr(74,sx-20,sy+34,1,1,false,true)
+			spr(74,sx+50,sy+34,1,1,true,true)
+
+			sspr((75%16)*8,flr(74 \ 16)*8,8,8,sx-15,sy-6,65,8) --top
+			sspr((75%16)*8,flr(74 \ 16)*8,8,8,sx-15,sy+34,65,8,false,true) --bot
+			for i=0,4 do
+				rotate(75,1,sx-20,sy+i*8,1,1)
+				rotate(75,2,sx+50,sy+i*8,1,1)
+			end
+			
+			-- rotate(sprite,mode,dx,dy,w,h)
+
+			inx = sx - 12
+			print("move: arrow keys",inx,sy,1)
+			print("use detector: z",inx,sy+8,1)
+			print("dig: a",inx,sy+16,1)
+			print("action/talk: x",inx,sy+24,1)
+			print("inventory: shift",inx,sy+32,1)
+			if btnp(5) then
+				show_controls = false
+			end
+		end
+
+		camera(-256,-256)
+
+		
+
+	else
+		update_camera()
+		if tranbool == true then
+			fade_to_black()
+			
+			if timer(transition,1,transition.sw) then tranbool = false end
+			
+		else 
+
+			for i=0,8 do
+				for j=0,4 do
+					map(22,22,0+wxoff+i*128,1+wyoff+j*128,16,16,0x2 )
+				end
+			end
+			map(0, 0, 0, 0, 128, 128)
+
+			if not outside then _draw_rest() end
+			draw_layered()
+			draw_porta()
+			draw_mounds()
+			draw_flipped()
+			draw_stuff1()
+			for n in all(gen_npcs) do
+				n:draw()
+			end
+			drawplayer()
+			if not outside then
+				if pl.y < dr.y-3 then draw_dm() end
+				if pl.y < gu.y+10 then drawgu() end
+				if pl.y < ba.y then drawba() end
+				if pl.y < lounger.y-2 then draw_lounger() end
+				for gn in all(gen_npcs) do
+					if pl.y < gn.y+1 then gn:draw() end
+				end
+			end
+			main_pal()
+		-- draw_stuff2()
+			if digging then dig_hud() end
+			hud()
+
+			if btnp(4,1) then show_inv = not show_inv end
+			draw_invent(show_inv) 
+			
+		-- Temp stuff
+			
+		-- rectfill(ba.x,ba.y,ba.x+8,ba.y+8,3)
+			
+			if debug then
+				for r in all(hitboxes) do
+					rect(r.x,r.y,r.x+8,r.y+8)
+				end
+				print(txt.option1,cx,cy)
+				for r in all(spr_boxes) do
+					rect(r.x1,r.y1,r.x2,r.y2,2)
+				end
+				-- print(response,cx+2,cy+2)
+				rect(pl.x-4,pl.y-8,pl.x+12,pl.y+8,9)
+				-- print("debug on",52,4,8)
+				print("tile x,y: "..(flr(pl.x/8)).." "..(flr(pl.y/8)),cx+10,cy+10,9)
+				-- print("Gen: "..dgenx.." "..dgeny,1)
+				-- print(pl.batt.." Battery level")
+				-- print(outside)
+				-- if digging then 
+				-- 	print("dig coords x:"..debug_q1[1].." y:"..debug_q1[2],cx+40,cy+120)
+				-- end
+				
+				rect(pl.x,pl.y,pl.x+8,pl.y+8,8)
+				if not stopadding then
+					pl.inv[1]+=1
+					pl.inv[2]+=1
+					pl.inv[3]+=1
+					pl.inv[4]+=1
+					pl.inv[5]+=1
+					pl.inv[6]+=1
+					
+					stopadding=true
+				end
+				-- print("curr slot: "..pl.curr_slot,cx,cy)
+				-- if this then print("do dialogue done",cx,cy+10) end
+				
+			end
+		end -- end start menu else
 	end
+
 
  --dialogue stuff
 	if pl.engaging then do_dialogue(pl.talking_to) end
@@ -345,10 +638,11 @@ function oven_spr(ox,oy)
 end
 
 function _draw_rest()
+	--sfx and completion of quest
 	
-	draw_dm()
-	drawba()
-	drawgu()
+	--entry
+	spr(105,15*8,55*8,1,1,false,true)
+
 	draw_bart()
 	for i=0,2 do
 		oven_spr(rx+8+i*8,ry+8)
@@ -376,14 +670,14 @@ function _draw_rest()
 
 
 	spr(91,rx+30,ry+100,2,1)
-	spr(91,rx+46,ry+100,2,1,true,false)
 	-- bar
 	spr(91,rx+16,ry+28,2,1,true)
 	spr(92,rx+8,ry+28)
 	-- rotate(sprite,mode,dx,dy,w,h)
-	rotate(91,2,rx+32,ry+24,1,1)
-	rotate(92,2,rx+32,ry+16,1,1)
-	rotate(92,2,rx+32,ry+8,1,1)
+	rotate(91,3,rx+32,ry+8,1,1)
+	rotate(92,3,rx+32,ry+16,1,1)
+	rotate(92,3,rx+32,ry+24,1,1)
+	rotate(91,1,rx+32,ry+27,1,1)
 
 	--npcs
 	for n in all(gen_npcs) do
@@ -394,28 +688,68 @@ function _draw_rest()
 
 end
 
+function draw_layered()
+	draw_dm()
+	drawba()
+	drawgu()
+end
+
+function draw_porta()
+	px=128*3
+	spr(107,px+60,-32,2,2)
+	spr(107,px+60,-16,2,2)
+
+	--guy
+	
+	sspr(15*8,0,8,5,px+68,-32)
+	sspr(15*8,0,8,5,px+60,-32,8,5,true)
+	spr(5,px+64,-27)
+
+	--walls
+	for i=0,3 do
+		spr(109,px+52,-32+i*8)
+		spr(109,px+76,-32+i*8,1,1,true)
+	end
+	spr(93,px+52,-40,2,1)
+	spr(94,px+68,-40)
+	spr(93,px+76,-40,1,1,true)
+end
 
 function _add_npc_gen(nx,ny)
-	-- tx = rnd(60)+rx+10
-	-- ty = rnd(60)+ry+10
-	tx = rx + 40
-	ty = ry+92
+	tx = rx+nx
+	ty = ry+ny
+	-- if all_done then dia_sel = 8 
+	-- else dia_sel = 3 end
+
 	add(gen_npcs,{
 		x = tx,
 		y = ty,
+		col = gen_iter,
 		vo=3,
-		txt = gen_npcs.dia[flr(rnd(3))+1],
-		-- hitbox = {}
-		-- pallet={rnd()}
+		words={
+			"i might just skip town. :",
+	"i'm just sitting here. :",
+	"i want to visit hawaii. :",
+	"i wish i knew magic.:",
+	"",
+	"i come here and never buy anything...:",
+	"the soda here is the best soda in town.:",
+	"this music is awesome!:",
+	"best band ever!:"
+		},
+		txt = gen_npcs.words[gen_iter], --flr(rnd(dia_sel))+1
+		state = gen_iter,
 		draw = function(self)
-			-- pal()
-			-- pal(2,12)
+			pal()
+			pal(1,self.col)
 			spr(15,self.x,self.y,1,1) -- change second 1 param to 2 for legs, below as well
 			spr(15,self.x-8,self.y,1,1,true,false)
-			-- main_pal()
+			main_pal()
 		end
 	})
 	add(hitboxes, {x=tx,y=ty})
+	gen_iter = gen_iter + 1
+	if gen_iter == 5 then gen_iter = 6 end
 end
 
 
@@ -432,9 +766,25 @@ function draw_stuff1()
 	-- mushrooms
 	spr(43,90,10)
 	spr(43,94,16,1,1,true,false)
+	spr(43,14*8,38*8)
+	spr(43,2*8,41*8)
+	spr(43,1*8-1,24*8,1,1,true)
+	-- spr(63,54*8,40*8)
+	-- spr(63,55*8,40*8,1,1,true)
+	
+
 
 	spr(43,33*8,8)
-	-- spr(43,94,16,1,1,true,false)
+
+
+	--corners
+	spr(93,2*8,8*9,1,1,false,true)
+	spr(93,2*8,8*4,1,1,false,true)
+
+	--stairs
+	spr(110,3*8,6*8,1,1,true,true)
+	spr(110,3*8,5*8,1,1,true)
+	spr(105,2*8,5*8,1,1,false,true)
 
 	
 end
@@ -550,8 +900,6 @@ function arrow_ctrl(left,top)
 	end
 	if not btn(4) then
 		arrow.x += arrow.spd
-		
-	
 	end
 
 	spr(85,arrow.x,arrow.y)
@@ -636,10 +984,8 @@ function draw_dig_field(type,qx,qy,barmid)
 			
 			if not type.done then -- give rewards
 				for main_item in all(m_items) do
-					-- debugvar = type.coords[0]
 					if (flr(type.coords[1]/8) == main_item.coords[1]) and (flr(type.coords[2]/8) == main_item.coords[2]) then
 						chance = 0
-						-- debugvar =  "found!"
 						type.rew = main_item.spr
 						_add_main_item(main_item)
 						del(m_items,main_item)
@@ -681,14 +1027,30 @@ end
 function _add_main_item(it)
 	if (it.spr == 36) or (it.spr == 52) then -- guitar
 		add(pl.g_parts,it.spr)
-	elseif (it.spr == 39) or (it.spr == 55) then -- drums
+		if #pl.g_parts > 1 then 
+			gu.state = 5
+			
+		  end
+	elseif (it.spr == 39) or (it.spr == 55) or (it.spr == 56) then -- drums
 		add(pl.d_parts,it.spr)
+		if #pl.d_parts > 2 then
+			dr.state = 5
+		end
+	elseif (it.spr == 53) or (it.spr == 38) then
+		add(pl.b_parts,it.spr)
+		if #pl.b_parts > 1 then
+			ba.state = 5
+		end
 	end
 end
 
 function check_all_boxes(x,y)
 	for box in all(hitboxes) do
 		if box_hit(x,y+8,1,1,box.x+3,box.y+20,14,10) then
+			return true end
+	end
+	for sbox in all(spr_boxes) do
+		if box_hit(x,y,8,8,sbox.x2,sbox.y2,abs(sbox.x1-sbox.x2),abs(sbox.y1-sbox.y2)) then
 			return true end
 	end
 	return false
@@ -710,7 +1072,9 @@ end
 		end
 		for y=0,h do
 		 for x=0,w do
-		  pset((y-ya)*yb+dx,(x-xa)*xb+dy,sget(x+sx,y+sy))
+		  if sget(x+sx,y+sy) != 0 then
+			pset((y-ya)*yb+dx,(x-xa)*xb+dy,sget(x+sx,y+sy))
+		  end
 		 end
 		end
 	   end
@@ -728,11 +1092,11 @@ end
 
 function draw_batt()
 	
-	if pl.batt < 25 then
+	if pl.batt < 32 then
 		batt_w = 2
-	elseif pl.batt < 50 then
+	elseif pl.batt < 64 then
 		batt_w = 4
-	elseif pl.batt < 75 then
+	elseif pl.batt < 110 then
 		batt_w = 8
 	else batt_w = 10 end
 	if pl.batt > 0 then rectfill(cx+3,cy+111,cx+3+batt_w,cy+117,9) end
@@ -853,8 +1217,27 @@ function do_dialogue(npc)
 	dia_text(npc)
 end
 
+
 function dia_text(npc)
-	current_words = split(npc.txt, " ")
+	hold = 0
+	wait = false
+	npc.txt = npc.words[npc.state]
+	-- print(npc.state,cx,cy+100,2)
+	if stop_talking then npc.txt = response end
+	find_opt = split(npc.txt, ":")
+	if #find_opt > 1 then
+		set_options(split(find_opt[2],";"),npc)
+	end
+
+	current_words = split(find_opt[1], " ")
+
+	if current_words[#current_words-2] == ":" then
+		-- debug = true
+		-- set_options(current_words[count(current_words)-1],current_words[count(current_words)])
+		del(current_words,current_words[#current_words])
+	end
+
+	if btnp(4) then txt.spd = 0 else txt.spd = .05 end
 	if timer(txt,txt.spd,txt.sw) and (dia_iter < count(current_words)+1) then
 		
 		if #txt.line1 < 25 then
@@ -863,23 +1246,36 @@ function dia_text(npc)
 			txt.line2=txt.line2.." "..current_words[dia_iter]
 		elseif #txt.line3 < 25 then
 			txt.line3=txt.line3.." "..current_words[dia_iter] 
-		else
-			print("sadfs")
+		elseif dia_iter < count(current_words) then
+			hold = dia_iter
+			wait = true
+			if btnp(4) and not stop_talking then reset_dia() end
+			dia_iter = hold
 		end
-		dia_iter += 1
-		sfx(npc.vo)
+		if not wait then 
+			dia_iter += 1
+			sfx(npc.vo) 
+		end
 	end
 	print(txt.line1,dia_topx+4,dia_topy+6,2)
 	print(txt.line2,dia_topx+4,dia_topy+14,2)
 	print(txt.line3,dia_topx+4,dia_topy+22,2)
 
-	if count(current_words) <= dia_iter and pl.talking_to != crab then
+	if count(current_words) <= dia_iter  then
 
 		-- if check this
-		print(txt.option1,dia_topx+14,dia_topy+33,1)
-		print(txt.option2,dia_topx+60,dia_topy+33,1)
-		dia_cursorx =dia_topx+9
-		dia_cursory = dia_topy+34
+		if txt.option1 != nil then print(txt.option1,dia_topx+14,dia_topy+33,1) end
+		if txt.option2 != nil then print(txt.option2,dia_topx+63,dia_topy+33,1) end
+		
+		if (txt.option1 != "") or (txt.option1 != nil) then
+			dia_cursorx = dia_topx+9
+			dia_cursory = dia_topy+34
+		else 
+			dia_cursorx = -100
+			dia_cursory = -100
+			-- debug = not debug
+		end
+		
 		if btnp(1) and (dia_cursorx < dia_cursorx + 30) then 
 			dia_cursor_off = 46
 			txt.opt=1
@@ -888,20 +1284,63 @@ function dia_text(npc)
 			dia_cursor_off = 0
 			txt.opt=2
 		end
-		if btn(4) then confirm_option(npc) end
+		if btnp(4) and not stop_talking then 
+			-- if stop_talking then pl.engaging = false end
+			confirm_option(npc) 
+			stop_talking = true
+		end
 		rectfill(dia_cursorx+dia_cursor_off,dia_cursory,dia_cursorx+2+dia_cursor_off,dia_cursory+2,2)
 
 	end
 end
 
+function set_options(ops,npc)
+	txt.option1 = ops[1]
+	txt.option2 = ops[2]
+	if #ops > 2 then
+		response = ops[3]
+	else repsonse = nil end
+end
+
+function clear_options()
+	response =""
+	txt.option1 = ""
+	txt.option2 = ""
+
+end
+
 -- dialogue selection confirmed, update variables.
 function  confirm_option(npc)
 	reset_dia()
-	npc.txt="just be respectful please."
-
-	
+	set_dialogue(npc,true)
+	npc.txt = response
 end
 
+function set_dialogue(npc,end_convo)
+	if end_convo then 
+		npc.txt = npc.words[1]
+	end
+	if npc == lounger then
+		if npc.state == 1 then 
+			npc.state = 3 
+			return npc.words[2]
+			
+		elseif npc.state == 3 then return "just be respectful of my space." 
+		end
+		
+	elseif npc == ba then
+
+	elseif npc == gu then
+
+	elseif npc == dr then
+
+	elseif npc == gen_npcs then
+		size = #gen_npcs.words
+		return
+	end
+
+	return "NULL"
+end
 -- function nps_state
 	
 -- end
@@ -910,6 +1349,8 @@ function reset_dia()
 	txt.line1=""
 	txt.line2=""
 	txt.line3=""
+	txt.option1=""
+	txt.option2=""
 	dia_iter=1
 	init_dia=true
 end
@@ -942,8 +1383,8 @@ pl.dy=0
 pl.dug=false
 pl.dug_timer=-1
 pl.engaging=false
-pl.talking_to=lounger
-pl.batt= 120
+-- pl.talking_to=lounger
+pl.batt= 120--120
 
 --PUT INVENTORY IN TABLE
 
@@ -976,21 +1417,24 @@ t1 = -1
 function move_player()
 	pl.dx=0
 	pl.dy=0
+	if btn(2,1) then spd=2 
+	else spd = .7 end
+
 	if btn(0) then	
 		pl.dx = -1*spd
 		pl.mrr=false
-
-	elseif btn(1) then
+	end
+	if btn(1) then
 		pl.dx = 1*spd
 		if (pl.mrr==false) then 
 			pl.cdir=false
 		end
 		pl.mrr=true
-		
-	elseif btn(2) then
+	end
+	if btn(2) then
 		pl.dy = -1*spd
-
-	elseif btn(3) then
+	end
+	if btn(3) then
 		pl.dy = 1*spd
 	end
 	if hit(pl.x+pl.dx,pl.y,7,7) then
@@ -998,7 +1442,7 @@ function move_player()
 	  end
 	
 	if hit(pl.x,pl.y+pl.dy,7,7) then
-	pl.dy=0
+		pl.dy=0
 	end
 
 	
@@ -1008,6 +1452,9 @@ function move_player()
 	
 	pl.x+=pl.dx
 	pl.y+=pl.dy
+
+	
+
 end
 
 function update_pl()  
@@ -1015,20 +1462,34 @@ function update_pl()
 	flag_tile=fget(map_tile)
 	t=pl.mrr
 	
-	if pl.batt <= 0 then
+	if pl.batt <= 0 or cant_dig then
 		cant_dig = true
 	end
-	-- if stam <= 0 then
-	-- 	pl.src
-	
-	-- pl.dx=0
-	-- pl.dy=0
+	if not btn(4) then can_rech = true end
+	if btn(4) and cant_dig then
+		mvdet(true)
+		if timer(btn5,.1,btn5.sw) and can_rech then 
+			pl.batt+=4
+			can_rech = false
+		end
+		
+		if pl.batt > 120 then cant_dig = false end
+	end
+
 	
 	if pl.engaging then -- don't do anything but listen and respond
 		pl.mvg=false -- Nec?
-		if btn(5) and timer(btn5,.2,btn5.sw) then 
+		if btn(5) and timer(btn5,.2,btn5.sw) then -- TODO try without timer and btnp
+			-- pl.talking_to.txt = pl.talking_to.words[2]
 			pl.engaging = false 
+			if pl.talking_to.state == 5 then 
+				pl.talking_to.done=true 
+				sfx(-1)
+				play_music()
+			end
 			reset_dia()	
+			clear_options()
+			stop_talking = false
 		end
 	
 	elseif show_inv then -- player is in inventory
@@ -1045,7 +1506,6 @@ function update_pl()
 			pl.talking_to=crab
 			do_dialogue(crab)
 		end
-		-- rect(pl.x-4,pl.y-8,pl.x+12,pl.y+8,9)
 	elseif btn(5) and timer(btn5,.5,btn5.sw) then
 		for npchar in all(npcs) do
 			if box_hit(pl.x,pl.y-4,16,16,npchar.x+16,npchar.y+8,20,12) then
@@ -1071,9 +1531,11 @@ function update_pl()
 	elseif btn(4) then 
 		pl.mvg=false
 		if not digging and not cant_dig then 
-			mvdet(5,3) 
+			mvdet(false) 
 			pl.batt -=.1
-		else retdet() end
+			-- det.y+=.
+		--  else retdet() 
+		end
 		
 		
 		-- end
@@ -1084,28 +1546,29 @@ function update_pl()
 				det.x=pl.x-8
 			end
 		end
-		if btn(5) then -- do digging
-			
-			digging=true 
-			pl.srch=true
-			pl.mvg=false
-		
-			initArrow = true
-			digging=true
-			pl.srch=false
+		move_player()
+		retdet()
 
-		end
 	
 	elseif digging then
 		pl.mvg=false
 		pl.srch=false 
 		dig_nav()
 
-		if btn(5) then 
+		if btnp(5,1) then 
 			digging = false 
 			initDig=true
 		end -- stop digging
 	
+	elseif btnp(5,1) and outside then -- do digging
+		digging=true 
+		pl.srch=true
+		pl.mvg=false
+	
+		initArrow = true
+		digging=true
+		pl.srch=false
+
 	else 
 		move_player() 
 		retdet()
@@ -1138,25 +1601,20 @@ function anim_pl()
 	end
 end
 		
-function mvdet(spd,rad)
-	i=1
-	j=1
+function mvdet(recharge)
 	if pl.mrr then
-		if dst(pl.x,det.x-2) > rad then
-				i=-1				
-		end
+
+		det.x = pl.x + 7
 	else 
-	 	if dst(pl.x,det.x+10) > rad then
-			i=-1
-		end
+
+		det.x = pl.x - 7
 	end
 	if timer(det,.3,det.sw) then
-		det.x+=i*rad
+
 		-- find distance between main items
 		sfx_val = 8
 		for main_item in all(m_items) do
 			dist = dstf2(pl.x,pl.y,main_item.coords[1]*8,main_item.coords[2]*8)
-			debugvar = dist
 			
 			if dist == 0 then
 				sfx_val = 8
@@ -1170,7 +1628,7 @@ function mvdet(spd,rad)
 				break
 			end
 		end
-		sfx(sfx_val)
+		if not recharge then sfx(sfx_val) end
 	end 
 end
 
@@ -1182,7 +1640,14 @@ function retdet()
  end
 end
 
-
+function play_music()
+	if gu.done and dr.done and ba.done then all_done = true end
+	if not all_done then 
+		if dr.done then sfx(34) end
+		if ba.done then sfx(53) end
+		if gu.done then sfx(40) end
+	else music(0) end
+end
 
 function hit(x,y,w,h)
 	collide=false
@@ -1194,19 +1659,31 @@ function hit(x,y,w,h)
 		
 		if fget(mget(i/8,y/8)) ==5 or
 			fget(mget(i/8,(y+h)/8))== 0x10 then
-			-- debug1=true
+		
 			tranbool=true
 			timer(ba,4,ba.sw)
 			timer(gu,10,gu.sw)
-			music(0)
+			-- music(0)
 			if outside then 
 				tx_hold = pl.x
 				ty_hold= pl.y
 				pl.x = 110
 				pl.y = 445
+				play_music()
+				
+				if all_done and not filled_gen then
+					_add_npc_gen(54,92)
+					_add_npc_gen(80,92)
+					_add_npc_gen(80,72)
+					_add_npc_gen(92,72)
+					_add_npc_gen(54,72)
+					filled_gen = true
+				end
+
 			else
 				pl.x = tx_hold+5
 				pl.y = ty_hold
+				sfx(-1)
 			end
 			outside = not outside
 			
@@ -1220,7 +1697,7 @@ end
 
 function drawplayer()
 	spr(pl.head,pl.x,pl.y-8,1,1,pl.mrr)
- if(pl.mvg==true)then 
+ 	if(pl.mvg==true) then 
 		anim(pl,2,3,3,0,0,pl.mrr)
 		anim(det,0,1,3,0,0,pl.mrr)
 	else
@@ -1340,73 +1817,52 @@ function dstf2(x1,y1,x2,y2)
 	return sqrt(sqr(x1/8-x2/8) + sqr(y1/8-y2/8))
 end
  
--- function disptxt()
---  if timer(txt,3) then
---   txt.t="i lost my special coin!"
---  end
--- end
+
 -->8
 --band
 
---drummer
-dr={}
-dr.spr=6
-dr.x=87
-dr.y=390
-dr.sc=5
-dr.an=false
-dr.timer=-1
-dr.sw=false
-dr.hb={}
-dr.txt = "I'm in the zone!"
-dr.vo=6
 
 function draw_dm()
-	 animdr()
-	 spr(dr.spr+3,dr.x,dr.y+8)	 
-	 spr(dr.spr+4,dr.x+8,dr.y+8)	 
-	 spr(dr.spr+3,dr.x+16,dr.y+8,1,1,true)	 
+	 if dr.done then 
+		animdr()
+		spr(dr.spr+3,dr.x-8,dr.y)	 
+		spr(dr.spr+4,dr.x,dr.y)	 
+		spr(dr.spr+3,dr.x+8,dr.y,1,1,true)	 
+	 else
+		spr(7,dr.x,dr.y-6)
+		spr(5,dr.x,dr.y+1)
+	 end
 end
 
 function animdr() 
  if timer(dr,rndb(.01,.7),dr.sw) then 
-  dr.sw = not dr.sw
+	dr.sw = not dr.sw
  end
  if dr.sw then
- 	spr(dr.spr,dr.x,dr.y)
- 	spr(dr.spr+1,dr.x+8,dr.y)
- 	spr(dr.spr+2,dr.x+16,dr.y)
+ 	spr(dr.spr,dr.x-8,dr.y-8)
+ 	spr(dr.spr+1,dr.x,dr.y-8)
+ 	spr(dr.spr+2,dr.x+8,dr.y-8)
  else
- 	spr(dr.spr+2,dr.x,dr.y,1,1,true)
- 	spr(dr.spr+1,dr.x+8,dr.y,1,1,true)
-  spr(dr.spr,dr.x+16,dr.y,1,1,true)
+ 	spr(dr.spr+2,dr.x-8,dr.y-8,1,1,true)
+ 	spr(dr.spr+1,dr.x,dr.y-8,1,1,true)
+	spr(dr.spr,dr.x+8,dr.y-8,1,1,true)
  end
 end
-	
---bass
-ba={}
-ba.spr=16
-ba.hands=22
-ba.arms=23
-ba.x=103
-ba.y=425
-ba.sc=5
-ba.an=true
-ba.timer=-1
-ba.sw=false
-ba.w = 8
-ba.h=16
-ba.timer=-1
-ba.txt = "One of our best performances right here."
-ba.vo = 5
 
 function drawba()
-	animba()
-	spr(ba.spr,ba.x,ba.y-16,2,1) -- head
- 	spr(ba.arms,ba.x+8,ba.y-8) -- body
-	spr(ba.hands,ba.x,ba.y-8) -- bass top
-    spr(19,ba.x+8,ba.y) -- legs
-	spr(21,ba.x,ba.y) --bass body
+	if ba.done then
+		animba()
+		spr(20,ba.x,ba.y-16)
+		spr(17,ba.x+8,ba.y-16) -- head
+		spr(ba.arms,ba.x+8,ba.y-8) -- body
+		spr(ba.hands,ba.x,ba.y-8) -- bass top
+		spr(19,ba.x+8,ba.y) -- legs
+		spr(21,ba.x,ba.y) --bass body
+	else
+		spr(16,ba.x-8,ba.y-16,2,1)
+		spr(18,ba.x,ba.y-8)
+		spr(19,ba.x,ba.y)
+	end
 end
 	--object,start,#frames,speed, flip
 function animba()
@@ -1429,25 +1885,17 @@ function baact()
 	disptxt()
 end
 
---guitar
-gu={}
-gu.spr=11
-gu.body=14
-gu.hands=27
-gu.x=70
-gu.y=396
-gu.sc=5
-gu.an=true
-gu.timer=-1
-gu.sw=false
-gu.txt = "couldn't have done it without you friend."
-gu.vo=4
 
 function drawgu()
-	animgu()
-	spr(gu.spr,gu.x,gu.y) -- head
-	spr(gu.body,gu.x,gu.y+8)
-	spr(gu.hands,gu.x+8,gu.y)
+	if gu.done then
+		animgu()
+		spr(gu.spr,gu.x,gu.y) -- head
+		spr(gu.body,gu.x,gu.y+8)
+		spr(gu.hands,gu.x+8,gu.y)
+	else
+		spr(11,gu.x,gu.y)
+		spr(26,gu.x,gu.y+8)
+	end
 end
 
 function draw_bart()
@@ -1469,18 +1917,16 @@ function animgu()
 	end 
 end
 
-crab={}
-crab.txt="...chit..chit chit...chit..."
-
-lounger={}
-lounger.spr=32
-lounger.x=34
-lounger.y=77
-lounger.txt="c'mon man... don't step on me while i'm enjoying a nice day in the sun."
-lounger.vo=7
 
 function draw_lounger()
 	sspr(0,16,16,8,lounger.x,lounger.y)
+	
+
+	-- rotate(32,3,96,24,1,1)
+	-- rotate(33,3,96,32,1,1)
+	
+	
+
 end
 
 -->8
@@ -1544,6 +1990,10 @@ function rrectfill(x0, y0, x1, y1, col, corners)
 	rectfill(new_x0, new_y1, new_x1, y1, col)
   end
 
+
+
+
+
 __gfx__
 00000000000dd00000111ff10011111100111ff10011110000000000000000000000000006666620012222100000000000000010221444562214445655500000
 00000dd000d11d0001111eef01111ff101111eef01111110000000000000000000000000022222210621126001111010011111002214ff5522144555fff50000
@@ -1557,10 +2007,10 @@ __gfx__
 011110000000000000022200000244000111100001454410000e5f0000222200000552200022220022122fe20000000000000000410000008888800011110000
 00111110000000000022220000044400001111104445444400054220002222000005402200222200222212220000000000000000411000001888800022220000
 0000011ff000000000222220000444000000011f44466444004544220202222000454402220222200eff22210000140000001400110000001888800022220000
-000040ee1f0000000ff2222000044000000410ee444444440444544220022220044454400022222001111d110006410000064100000000000888800000220000
-0000401eeef000000e222220000440000014401e04455440044454400022222004445440222022200511dd1000f6000000ff0000000000000888800000020000
-0000500eeeef000000f22220000440000000500e00455400004454ff222222200044ff22000222200501d5000ee0000006e20000000000000003000000030000
-00045400000e20000ee22200ddd555dd000050000000500000154ee000022200001ee10000022200050dddd06620000066220000000000000003300000033000
+000000ee1f0000000ff2222000044000000410ee444444440444544220022220044454400022222001111d110006410000064100000000000888800000220000
+0000001eeef000000e222220000440000014401e04455440044454400022222004445440222022200511dd1000f6000000ff0000000000000888800000020000
+0000000eeeef000000f22220000440000000500e00455400004454ff222222200044ff22000222200501d5000ee0000006e20000000000000003000000030000
+00000000000e20000ee22200ddd555dd000050000000500000154ee000022200001ee10000022200050dddd06620000066220000000000000003300000033000
 0af1f0000000000000000000000550000014410000000000000001400000e0000022220000144100090000900088000090009000000000000000000000000000
 afffff000000000000000000fff5500000044000000000000000144a0099e9900266662000066000999009990878880090909499099999000000000000000000
 af1ffff0000000000000000ff1fff000001aa10000000000000044a1099999992666666200466400100000018787878040904000097799000000000000000000
@@ -1569,14 +2019,14 @@ feffffef1100ff0000000ff1ffffff0000066000000000044445000000991111162222630a4554a0
 0fefeeff111f00f000002f1ffff1f0000006600000000044445400009999e9901266662044444444262662620055000090909499000979990000000000000000
 0fefffff111000ef00022ee1ff1e55000006600000000044454400000eee999913222231a444444a032662300005500040904000000eeeee0000000000000000
 0feefeff111ffffe002212eeeee05500004664000044141454440000011119e0001111100aaaaaa010122101000aa00000400499000000000000000000000000
-006666000008000000221ff200000000044664400444414544440000002222000000040000144100e000000e00000000000006600000dd6d0000000000000000
-088888800080080002211efe000000000446644004444454144a0000061111600264464000a55a004e0000e40000660006600d60000d7d160000000000000000
+006666000008000000221ff200000000044664400444414544440000002222000000040000144100e000000e00000000000006600000dd6d0000000000000055
+088888800080080002211efe000000000446644004444454144a0000061111600264464000a55a004e0000e40000660006600d60000d7d160000000055000555
 0888888000808000022112ee0000000f0a4334a0044445414aa00000216666122646446204454440e030030e0000d6000d66d00000d7771d0000000000000000
-088777700808000802222222000000ff04455440044654441000000021666612326466230a1451a00e0ee0e000dd0990000d66600d78c77d0000000000000000
-07777870080808800111111000000f1f44444444044464444000000026111162362222610144541000eeee00009d0e9006d00d60d77987d00000000000000000
+088777700808000802222222000000ff04455440044654441000000021666612326466230a1451a00e0ee0e000dd0990000d66600d78c77d0000000000550000
+07777870080808800111111000000f1f44444444044464444000000026111162362222610144541000eeee00009d0e9006d00d60d77987d00000000000555000
 08888880808080000011110000002ff1a444444a05544444a00000003d2222d3026666214466664400044000090000900d606d00d1777d000000000000000000
-02222880080800880001100000022e1e0a4444a0055aaaaa000000001133331113222231a455554a0e4004e0000009900066d6006117d0000000000000000000
-006666000080880005555550002212ee00aaaa00500000000000000001dddd10011111000aaa5aa00e0000e00000000000dd0000d6dd00000000000000000000
+02222880080800880001100000022e1e0a4444a0055aaaaa000000001133331113222231a455554a0e4004e0000009900066d6006117d0000000000055005555
+006666000080880005555550002212ee00aaaa00500000000000000001dddd10011111000aaa5aa00e0000e00000000000dd0000d6dd00000000000000055555
 bbbbbbbbb35bbbbb00000000000000000000000000000000000000000000000033333333333333300033333333333333cccc7cccccccccccccccc5b77b5ccccc
 bbbbbbb7b35bbbbb000003333000000000000000000000000000000000000000000000000000000303ddddddddddddddcc7ccccccccc7ccccccc75b77b57cccc
 bbbbbbb77b35bbbb00033f3ef30000000000000000000000000000000030000000000000000000033d7777777777777777ccccccc7777777c777775bb577777c
@@ -1609,105 +2059,105 @@ b777777777777bb7cc7ccccccccc7ccc7b5ccccccccc75b7555b5353355b555535bb5555bbb7b777
 77777bbbbb777777ccccccccccc77ccc7b5cccccccc775b753555b55555555557335355b5553555555555337ffffffffffaaafff55bbbbbb5555a55a87822283
 777bbbbbb777777bcc7cccccccccccccb5cccccccccccc5b555555555555b3557b33555555335355555533bbaaaaaaaaaaaaaaaa5555555555a5a55587822283
 77bbbb7777777777ccccccccccccccccb5cccccccccccc5b5555555555555555bb733333333333333333377bbbbbbbbaabbbbbbb55555555aaaaaaaa87822283
-a6170717071707170717071707170717071707174700000000000000000000000000000000000000000000000000000000000000000717071707170717071707
-17071707170717071707170717071707170717071707170717071707170717071707170717071707170717071700000000000000000000000000000000000000
-a6160616061606160616061606160616061600000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+a61707170717071707170717071707866676a6a647002737273727372737273727372737273727372737273727e2e2e2e2e2e2e2570717071707170717071707
+17071707170717071707170717071786170717071707170717071707170717071707170717071707170717071700000000000000000000000000000000000000
+a61606160616061606160616061606866777770000273727372737273727372737273727372737273727372737e2e2e2e2e2e2e2570616061606160616061606
+16061606160616061606160616061686000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+a61707170717071707170717071707866795770000002737273727372737273727372737273727372737273727e2e2e2e2e2e2e2570717071707170717071707
+17071707170717071707170717071786000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+a61606160616061606160616061606860616000000273727372737273727372737273727372737273727372737e2e2e2e2e2e2e2570616061606160616061606
+16061606160616061606160616061686000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+a61707170717071707170717071707860717000000002737273727372737273727372737273727372737273700e2e2e2e2e2e2e2570717071707170717071707
+17071707170717071707170717071786000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+a61606160616061606160616061606860000000000273727372737273727372737273727372737273727372737e2e2e2e2e2e2e2570616061606160616061606
+16061606160616061606160616061686000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+a61707170717071707170717071707860000000000000000000000000000000000000000000000273727372737e2e2e2e2e2e2e2570717071707170717071707
+17071707170717071707170717071786000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+6795959595a5061685959595959595770000000000000000000000000000000000000000000000000000000000e2e2e2e2e2e2e2570616061606160616061606
+16061606160616061606160616061686000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+7666979797a7071786666676667666760000000000000000000000000000000000000000000000000000000000e2e2e2e2e2e2e2570717071707170717071707
+17071707170717071707170717071786000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+86a6061606160616866676667666767700000000000000000000000000000000000000000000000000000000000000000000e2e2570616061606160616061606
+16061606160616061606160616061686000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+86a607170717071786667667776777760000000000000000000000000000000000000000000000000000000000000000000000e2372636263626362636263626
+36263626362636263626362636263687000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+86a606160616061687979797979797970000000000000000000000000000000000000000000000000000000000000000000000e2000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-a6170717071707170717071707170717071700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+86a60717071707174636263626362636000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-a6160616061606160616061606160616061600000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+86a65607171606164700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-a6170717071707170717071707170717071700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+86a63726263626360000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-a6160616061606160616061606168616000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-a6170717071707170717071707178617000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-6795959595a506168595959595957716000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00170717071707170717071707170717000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00161707170717000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00170006160616000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000007170717000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000006160616000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000007170717000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000006160000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000007170000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-d7e7e7e7e7e7e7e7e7e7e7e7e7e7e7d7000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-f5b6c6b6c6b6c6b6c6b6c6b6c6b6c6d6000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-f5b7c7b7c7b7c7b7c7b7c7b7c7b7c7d6000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-f5b6c6b6c6b6c6b6c6b6c6b6c6b6c6d6000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-f5b7c7b7c7b7c7b7c7b7c7b7c7b7c7d6000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-f5b6c6b6c6b6c6b6c6b6c6b6c6b6c6d6000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-f5b7c7b7c7b7c7b7c7b7c7b7c7b7c7d6000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-f5b6c6b6c6b6c6b6c6b6c6b6c6b6e696000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-f5b7c7b7c7b7c7b7c7b7c7b7c7b7e696000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-f5b6c6b6c6b6c6b6c6b6c6b6c6b6c6d6000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-f5b7c7b7c7b7c7b7c7b7c7b7c7b7c7d6000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-f5b6c6b6c6b6c6b6c6b6c6b6c6b6c6d6000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-f5b7c7b7c7b7c7b7c7b7c7b7c7b7c7d6000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-f5b6c6b6c6b6c6b6c6b6c6b6c6b6c6d6000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-f5b7c7b7c7b7c7b7c7b7c7b7c7b7c7d6000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+263627e2e2e200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 d7e7e7e7e7e7e7e7e7e7e7e7e7e7e7d7000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+f5b6c6b6c6b6c6b6c6b6c6b6c6b6c6d6000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+f5b7c7b7c7b7c7b7c7b7c7b7c7b7c7d6000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+f5b6c6b6c6b6c6b6c6b6c6b6c6b6c6d6000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+f5b7c7b7c7b7c7b7c7b7c7b7c7b7c7d6000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+f5b6c6b6c6b6c6b6c6b6c6b6c6b6c6d6000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+f5b7c7b7c7b7c7b7c7b7c7b7c7b7c7d6000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+f5b6c6b6c6b6c6b6c6b6c6b6c6b6c696000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+f5b7c7b7c7b7c7b7c7b7c7b7c7b7c796000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+f5b6c6b6c6b6c6b6c6b6c6b6c6b6c6d6000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+f5b7c7b7c7b7c7b7c7b7c7b7c7b7c7d6000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+f5b6c6b6c6b6c6b6c6b6c6b6c6b6c6d6000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+f5b7c7b7c7b7c7b7c7b7c7b7c7b7c7d6000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+f5b6c6b6c6b6c6b6c6b6c6b6c6b6c6d6000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+f5b7c7b7c7b7c7b7c7b7c7b7c7b7c7d6000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+d7e5e5e5e5e5e5e5e5e5e5e5e5e5e5d7000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 __gff__
 0000000000000000000000000100000000000000000001000000000000000000020000000000000000000080000000000100000000000000000000000000000000000000000000000000000002020202000000000000000002020200000202020000020202020202021002000002000200000202020202020202020000020202
 0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 __map__
-6679797979797979797979797979797979797967667979797979796779797979667979797979677679797979796779797979797971707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170
-7f6f616061606160616061607867667a616061787a60616061606168665967676a60616061607876797959596a6761606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160
-6a7f5d70717071707170717071686a7071707170717071707170716868776a6a6a70717071707170717068686a7a71707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170
-6a7f6d6061606160616061606168765a616061585a60616061606168767979776a60616061606160616078797a6061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160
-6a7f5d70717071707170717071786776595959776a70717071707178797979797a7071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170
-6a7f696e616061606160616061607867667979797a6061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160
-6a7f696e7170717071707170717071787a707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170
-6a7f5d6061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160
-6a7f6d7071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170
-6a7f5d6061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160
-7f6f717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170
-6362636263626362636265606160646362636263626362636263626362636263626362636560616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160
-7372737273727372737375707170747372737273727372737272737273727372737273727570717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170
-7273727372737273727373626560747372737273727372737372737273727372737273727560616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160
-727372734c4d4c4d4c4d4c4d4e70747273727372737273727372737273727372737273727362626262626270717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170
-7273727560616061606160616061747273727372737273727372737273727372737273727372737273727375706061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160
-7273727570717071707170717071747372737272737273727372737273727372737273727372737273727375607071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170
-7273727560616061606160616061747273727372737273727372737273727372737273727372737273727375706061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160
-72734c4e70717071707170717071747272737273727372737273727300000000000000727372737272737273657071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170
-585a606160616061606160616061747273727372737273727372737200000000000000727372737273737273726263626362636265606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160
-686a707170717071707170717071747272737273727372737273727300000000000000727372737273727273727372737273727375707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170
-686a606160616061606160616061747273727372737273727372737200000000000000727372737273727373727372737273727375606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606100000000000000000000000000000000000020
-686a707170717071707170717071747272737273727372737273727300000000000000727372737273727373727372737273727375707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707100000000000000000000000000000000000020
-667a606160616061606160616061747273727372737273727372737200000000000000727372737273727372737372737272737075606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606100000000000000000000000000000000000020
-6a71707170717071707170717071747272737273727372737273727300000000000000727372737273727372737273727372736060707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707100000000000000000000000000000000000020
-6a61606160616061606160616061747373727372737273727372737200000000000000000000000000000000000000000060606060606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606100000000000000000000000000000000000020
-6a717071707170717071707170714f4d4c4d4c4d727300000000000000000000000000000000000000000000000000000000000000707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707100000000000000000000000000000000000020
-6a61606160616061606160616061606160616061747200000000000000000000000000000000000000000000000000000000000000606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606100000000000000000000000000000000000020
-6a71707170717071707170717071707170717071747200000000000000000000000000000000000000000000000000000000000000707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707100000000000000000000000000000000000020
-6a61606160616061606160616061606160616061747200000000000000000000000000000000000000000000000000000000000000606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606100000000000000000000000000000000000020
-6a71707170717071707170717071707170717071747200000000000000000000000000000000000000000000000000000000000000707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707100000000000000000000000000000000000020
-6a61606160616061606160616061606160616061740000000000000000000000000000000000000000000000000000000000000000606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606100000000000000000000000000000000000020
+6679797979797979797979797979797979797967667979797979796779797979667979797979677679797979796779797979797979797a70717078797979797979797979797979797979797979797967797979797979797979797979797979797979797979797979797979797979797979797979797979797979797979797967
+7f6f616061606160616061607867667a616061787a60616061606168665967676a60616061607876797959596a6761606160616061606160616061606160616061606160616061606160616061606168616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606168
+6a7f5d70717071707170717071686a7071707170717071707170716868776a6a6a70717071707170717068686a7a71707170717071707170717071707170717071707170717071707170717071707168717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707168
+6a7f6d6061606160616061606168765a616061585a60616061606168767979776a60616061606160616078797a6061606160616061606160616061606160616061606160616061606160616061606168616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606168
+6a7f5d70717071707170717071786776595959776a70717071707178797979797a7071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707168717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707168
+6a7f696e616061606160616061607867667979797a6061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606168616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606168
+6a7f696e7170717071707170717071787a707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707168717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707168
+6a7f5d6061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606168616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606168
+6a7f6d7071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707168717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707168
+6a7f5d6061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606168616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606168
+7f6f717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707168717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170
+6362636263626362636265606160646362636263626362636263626362636263626362636560616061606160616061606160616061606160616061606160616061606160616061606160616061606168616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160
+2e2e2e2e2e2e2e2e2e2e75707170742e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e7570717071707170717071707170717071707170717071707170717071707170717071707170717071707168717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707170
+2e2e2e2e2e2e2e2e2e2e73626560742e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e7560616061606160616061606160616061606160616061606160616061606160616061606160616061606168616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606160
+2e2e2e734c4d4c4d4c4d4c4d4e70742e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e7362626262626270717071707170717071707170717071707170717071707170717071707170717071707168717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707168
+2e2e2e7560616061606160616061742e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e73727375706061606160616061606160616061606160616061606160616061606160616061606168616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606168
+2e2e2e7570717071707170717071742e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e73727375607071707170717071707170717071707170717071707170717071707170717071707168717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707168
+2e2e2e7560616061606160616061742e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e73727375706061606160616061606160616061606160616061606160616061606160616061606168616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606168
+2e2e2e4e70717071707170717071742e2e2e2e727372737273727372737272737273727372732e2e2e2e2e73657071707170717071707170717071707170717071707170717071707170717071707168717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707168
+585a606160616061606160616061742e2e2e2e72737273727372727372737273727372737372732e2e2e2e2e726263626362636265606160616061606160616061606160616061606160616061606168616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606168
+686a707170717071707170717071742e2e2e2e72737372737273727372737273727372737372732e2e2e2e2e2e2e2e2e2e2e2e2e75707170717071707170717071707170717071707170717071707168717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707168
+686a606160616061606160616061742e2e2e2e72737273727273727372737273727372737372732e2e2e2e2e2e2e2e2e2e2e2e2e75606160616061606160616061606160616061606160616061606168616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606168
+686a707170717071707170717071742e2e2e2e72737372737273727372737273727372737372732e2e2e2e2e2e2e2e2e2e2e2e2e75707170717071707170717071707170717071707170717071707168717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707168
+667a606160616061606160616061742e2e2e2e72737273727372727372737273727372737372732e2e2e2e2e2e2e2e2e2e2e2e2e75606160616061606160616061606160616061606160616061606168616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606168
+6a71707170717071707170717071742e2e2e2e72737372737273727372737273727372737372732e2e2e2e2e2e2e2e2e2e2e2e2e75707170717071707170717071707170717071707170717071707168717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707168
+6a61606160616061606160616061742e2e2e2e7273727372727372737273727372737272737372727372737273000000002e2e2e75606160616061606160616061606160616061606160616061606168616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606168
+6a717071707170717071707170714f4c4d4c4d4c727372737273727372737273727372727372737372737273727300000000000075707170717071707170717071707170717071707170717071707168717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707168
+6a61606160616061606160616061606160616061747273727372737273727372737273727372737273727372730000000000000075606160616061606160616061606160616061606160616061606168616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606168
+6a71707170717071707170717071707170717071747272737273727372737273727372737273727372737273727300000000000075707170717071707170717071707170717071707170717071707168717071707170717071707170717071707170717071707170717071707170717071707170717071707170717071707168
+6a61606160616061606160616061606160616061747273727372737273727372737273727372737273727372730000000000000075606160616061606160616061606160616061606160616061606168616061606160616061606160616061606160616061606160616061606160616061606160616061606160616061606168
+6a7170717071707170717071707170585959595a7472727372737273727372737273727372737273727372737273000000002e2e75707170717071707170717071707170717071707170717071707168717071707170717071707170717071707170717071707170717071707100000000000000000000000000000000000020
+6a6160616061606160616061606160686659676a747273727372737273727372737273727372737273727372732e2e2e2e2e2e2e75606160616061606160616061606160616061606160616061606168616061606160616061606160616061606160616061606160616061606100000000000000000000000000000000000020
 __sfx__
 480c002000000000003261133611336113f6113e6113e6113e6123e6123e6123e6123e6123e612326123261232612266112461124611246110c611006120c6120061500000000000000000000000000000000000
 01020000155541d54119543363003630036300107000f7000f7001070003700337003370033700337003370033700337003370033700337003370033700337003370033700337003f7001b7001b7001b70000000
@@ -1743,13 +2193,13 @@ __sfx__
 001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-010f00001f6132b6001f6130060022623166001f612006001f6150e60024623096001f613006001f613006001f6132b6001f6130060022623006001f612006001f6150f60024623006001f613006001f61309600
+000f00201f6132b6001f6130060022623166001f612006001f6150e60024623096001f613006001f613006001f6132b6001f6130060022623006001f612006001f6150f60024623006001f613006001f61309600
 490f00003c6323c63328623006000c663166003761200600376150e6003c6323c6330c663006003c6323c6333c6323c63337613006000c663006003761200600376150f6003c6323c6330c663006003761309600
 001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 010f00001140000000000001740018400000000000000000000000000011400000000000017400184000000000000000001540000000000001740018400000000000000000154000000018400184001740000000
-170f00001144500000000001742018452184450000000000000000000011445000000000017420184521844500000000001544500000000001742018452184450000000000154421742118442184551744017410
+160f00201144500000000001742018452184450000000000000000000011445000000000017420184521844500000000001544500000000001742018452184450000000000154421742118442184551744017410
 170f00001644500000000001842019452194450000000000164000000016445000000000018420194521944519400000001944517400174001740016452164551540017400194451840016420000001945219445
 170f0000214221e4201f4521f44500000004001e4301e4411d4501d4550040000000000001f4201f4521f4451e4301e4411d4501d455004001f4201f4521f455000002140021450214211d4501d4211c4501c421
 170f00001a4501a4221a4221a42500400194201a4521a4401a4521a42119452194401944219421184521844018442184211645216440164421642118452184401844218421164521642115452154211845218421
@@ -1762,7 +2212,7 @@ __sfx__
 170f00001a4201a4521a4321a42500000000001d4221d4511f4201f45121452214251c4001c400244222445527400274002242222455274000000024422244551840018400224222245524400244002142221452
 010f00002445024450244502445024450244500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-110f00000516205165000000000000000000000c1620c1650c1620c1650000000000000000000005162051650516205165000000000000000000000c1620c1650c1620c1650c1620d1610e1620e1650c1620c165
+100f00200516205165000000000000000000000c1620c1650c1620c1650000000000000000000005162051650516205165000000000000000000000c1620c1650c1620c1650c1620d1610e1620e1650c1620c165
 110f00000a1620a1653c000000000000000000051620516505162051650000000000000000000009162091650a1620a1650000000000000000000005162051650516205165051620616107162071650616206165
 __music__
 00 22674344
